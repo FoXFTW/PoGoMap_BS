@@ -171,7 +171,7 @@ class PoGOBS
                         // $spawn->setTimestamp(strtotime(date('d.m.Y '.(($now->format('H')+date('H',$row['normalized_timestamp']))%24).':'.date('i',$row['normalized_timestamp']).':00', time())));
                         $iv = $now->diff($spawn);
 
-                        $spawn_string .= ' (In '.$iv->d.' Tage(n) '.$iv->h.' Stunde(n) '.$iv->i.' Minute(n))';
+                        // $spawn_string .= ' (In '.$iv->d.' Tage(n) '.$iv->h.' Stunde(n) '.$iv->i.' Minute(n))';
 
                         $added_pkmn[$addHash]['spawn_timer_text'] = $spawn_string;
                         // $added_pkmn[$addHash]['spawn_timer'] = '<br>Spawn alle '.$iv->d.' Tage '.$iv->h.' Stunden '.$iv->i.' Minuten <br>';

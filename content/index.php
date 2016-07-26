@@ -13,6 +13,7 @@ if (isset($match) && $match['name'] == 'pkmnroute')
     <head>
         <meta charset="utf-8">
         <title>Pokémon Map Braunschweig</title>
+        <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
         <link rel="stylesheet" href="/static/css/bootstrap.min.css" id="basecss">
         <link rel="stylesheet" href="/static/css/select2.css" id="basecss">
         <link rel="stylesheet" href="/static/css/main.css">
