@@ -185,7 +185,7 @@ class PoGOBS
                         );
                         $iv = $now->diff($spawn);
 
-                        $spawn_string .= '<br><br><strong>Nächster Spawn:</strong><br>'.$iv->d.' Tage(n)<br>'.$iv->h.' Stunde(n)<br>'.$iv->i.' Minute(n)';
+                        $spawn_string .= '<br><br><strong>Nächster Spawn (derzeit fehlerhaft):</strong><br>'.$iv->d.' Tage(n)<br>'.$iv->h.' Stunde(n)<br>'.$iv->i.' Minute(n)';
 
                         $added_pkmn[$addHash]['spawn_timer_text'] = $spawn_string;
                         $added_pkmn[$addHash]['spawn_timer_raw'] = $spawn_timer_raw;
