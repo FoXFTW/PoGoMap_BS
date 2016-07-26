@@ -9,5 +9,5 @@ if (!isset($_POST['id']) || !isset($_POST['name']))
 
     header('HTTP/1.1 200 Ok');
     header('Content-Type: application/json; charset=utf-8');
-    echo $PoGO->getPokemon($id);
+    echo $PoGO->getPokemonFromDB($id);
 }

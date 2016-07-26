@@ -4,10 +4,10 @@ define( 'basedir', __DIR__ );
 require_once basedir.'/inc/AltoRouter.php';
 require_once basedir.'/inc/PoGO-BS.class.php';
 $PoGO = new PoGOBS();
-$PoGO->setJsonFile(basedir.'/inc/pokemon.de.json');
+$PoGO->setJsonandParse(basedir.'/inc/pokemon.de.json');
 $PoGO->setDBType('SQLite');
-$PoGO->setSQLiteDB(basedir.'/inc/db.sqlite');
-$PoGO->connectSQLite();
+$PoGO->setDBConfig(array('dbName' => basedir.'/inc/db.sqlite'));
+$PoGO->startDBConnect();
 
 $routerPath = '';
 $Router = new AltoRouter();
@@ -17,8 +17,8 @@ $Router -> map( 'GET', '/pokemon/[a:pokemon]', basedir.'/content/index.php', 'pk
 $Router -> map( 'POST', '/get/pokemon', basedir.'/inc/ajax/getPKMN.ajax.php', 'pkmnajax' );
 
 $match = $Router -> match();
-if( $match ){
-
+if ($match)
+{
     require $match['target'];
 } else {
   header("HTTP/1.1 404 Not Found");

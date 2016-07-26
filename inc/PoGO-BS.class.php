@@ -2,12 +2,11 @@
 class PoGOBS
 {
 
-    private $_conn;
     private $_dbType;
-    private $_mySQLConfig;
-    private $_SQLiteDB;
-    private $_SQLiteDBObj;
+    private $_dbCOnfig;
+    private $_dbObject;
     private $_pkmnJSON;
+    private $_lastDBResult;
 
     public function __construct()
     {
@@ -19,17 +18,29 @@ class PoGOBS
         return $this->_dbType;
     }
 
+    public function getDBObject()
+    {
+        return $this->_dbObject;
+    }
+
     public function setDBType($type)
     {
         if ($type == 'MySQL')
         {
             $this->_dbType = 'MySQL';
-        } else {
-            $this->_dbType = 'SQLite';
+            return true;
         }
+
+        if ($type == 'SQLite')
+        {
+            $this->_dbType = 'SQLite';
+            return true;
+        }
+
+        throw new Exception('Databasetype not recognized', 1);
     }
 
-    public function setJsonFile($jsonFile)
+    public function setJsonandParse($jsonFile)
     {
         if (file_exists($jsonFile))
         {
@@ -41,115 +52,106 @@ class PoGOBS
         }
     }
 
-    public function setMySQLConfig(array $config)
+    public function setDBConfig(array $config)
     {
         $defaults = array(
-            'ip' => '',
-            'user' => '',
-            'password' => '',
-            'dbname' => ''
+            'dbIP' => '',
+            'dbUser' => '',
+            'dbPassword' => '',
+            'dbName' => ''
         );
 
         $config = array_merge($defaults, $config);
 
-        $this->_mySQLConfig = $config;
+        $this->_dbCOnfig = $config;
     }
 
-    public function startMySQLConnect()
+    public function startDBConnect()
     {
-        if (!empty($this->_mySQLConfig))
+        if (!empty($this->_dbCOnfig))
         {
-            $this->_conn = new mysqli($this->_mySQLConfig["ip"], $this->_mySQLConfig["user"], $this->_mySQLConfig["password"], $this->_mySQLConfig["dbname"]);
-            if ($this->_conn->connect_error)
+            if (!empty($this->_dbType))
             {
-                throw new Exception("Could not connect to Database ". $config["dbname"] ." with the given credentials", 1);
+                switch ($this->_dbType) {
+                    case 'MySQL':
+                        $this->_dbObject = new mysqli($this->_dbCOnfig["dbIP"], $this->_dbCOnfig["dbUser"], $this->_dbCOnfig["dbPassword"], $this->_dbCOnfig["dbName"]);
+                        if ($this->_dbObject->connect_error)
+                        {
+                            throw new Exception("Could not connect to Database ". $config["dbName"] ." with the given credentials", 1);
+                        }
+                        break;
+
+                    case 'SQLite':
+                        $this->_dbObject = new SQLite3($this->_dbCOnfig["dbName"]);
+                        break;
+
+                    default:
+                        throw new Exception('Databsetype not recognized', 1);
+                        break;
+                }
+            } else {
+                throw new Exception('Databsetype not set', 1);
             }
         } else {
             throw new Exception("SQL Config not set", 1);
         }
     }
 
-    public function setSQLiteDB($path)
-    {
-        $this->_SQLiteDB = $path;
-        return $this;
-    }
-
-    public function getJSONPKMN($type = 'select', $selectedID = '')
+    public function createSelectFromJSON($selectedID = '')
     {
         if (!empty($this->_pkmnJSON))
         {
             $pkmn = $this->_pkmnJSON;
-            if ($type == 'select')
-            {
-                $return = '<select name="system" id="system"><option></option><optgroup label="Derzeit verfügbar">';
-                foreach ($pkmn as $pkmnid => $pkmnname) {
-                    $return .= '<option value="'.$pkmnid.'" '.($pkmnid==$selectedID?'selected="selected"':'').'>'.$pkmnname.'</option>';
-                    if ($pkmnid == 151)
-                    {
-                        $return .='</optgroup><optgroup label="Noch nicht verfügbar">';
-                    }
+            $return = '<select name="system" id="system"><option></option><optgroup label="Derzeit verfügbar">';
+            foreach ($pkmn as $pkmnid => $pkmnname) {
+                $return .= '<option value="'.$pkmnid.'" '.($pkmnid==$selectedID?'selected="selected"':'').'>'.$pkmnname.'</option>';
+                if ($pkmnid == 151)
+                {
+                    $return .='</optgroup><optgroup label="Noch nicht verfügbar">';
                 }
-                $return .= '</optgroup></select>';
-                return $return;
-            } else {
-                return $pkmn;
             }
+            $return .= '</optgroup></select>';
+            return $return;
         } else {
             throw new Exception('JSON File is not set', 1);
         }
     }
 
-    public function connectSQLite()
+    public function getPokemonFromDB($pkmn_id, $returnType = 'JSON')
     {
-        if (!isset($this->_SQLiteDB))
+        if (!isset($this->_dbObject))
         {
-            throw new Exception('SQliteDB not set', 1);
-        } else {
-            $this->_SQLiteDBObj = new SQLite3($this->_SQLiteDB);
-        }
-        return $this;
-    }
-
-    public function getSQLiteDB()
-    {
-        return $this->_SQLiteDBObj;
-    }
-
-    public function getPokemon($pkmn_id)
-    {
-        if (!isset($this->_dbType))
-        {
-            throw new Exception('DB Type not set', 1);
-        }
-
-        if ($this->_dbType == 'SQLite' && !isset($this->_SQLiteDBObj)) {
-            throw new Exception('Database is SQLite but Databse Object does not exist', 1);
+            throw new Exception('DB Object not initialized', 1);
         }
 
         $pkmn_id = (int) $pkmn_id;
         $pkmn_result = array();
         $added_pkmn = array();
-        if ($this->getDBType() == 'SQLite') {
-            $pkmn_result_raw = $this->_SQLiteDBObj->query('SELECT lat, lon, normalized_timestamp, pokemon_id, spawn_id FROM sightings WHERE pokemon_id = '.$pkmn_id.' ORDER BY normalized_timestamp ASC');
-        } else {
+        $query = 'SELECT lat, lon, normalized_timestamp, pokemon_id, spawn_id FROM sightings WHERE pokemon_id = '.$pkmn_id.' ORDER BY normalized_timestamp ASC';
 
+        if ($this->_dbType == 'SQLite') {
+            $fetchType = SQLITE3_ASSOC;
+        } else {
+            $fetchType = MYSQLI_ASSOC;
         }
-        while ($row = $pkmn_result_raw->fetchArray(SQLITE3_ASSOC))
+
+        $pkmn_result_raw = $this->_dbObject->query($query);
+
+        while ($row = $pkmn_result_raw->fetchArray($fetchType))
         {
             $addHash = $row['pokemon_id'].$row['lat'].$row['lon'];
             if (empty($added_pkmn[$addHash]))
             {
                 $spawn_string = '';
-                $now = new DateTime();
-                $spawn = new DateTime();
-                $spawn->setTimestamp(strtotime(date('d.m.Y '.(($now->format('H')+date('H',$row['normalized_timestamp']))%24).':'.date('i',$row['normalized_timestamp']).':00', time())));
-                $iv = $now->diff($spawn);
-                // $spawn_string .= ' (In '.$iv->d.' Tage(n) '.$iv->h.' Stunde(n) '.$iv->i.' Minute(n))';
-                $added_pkmn[$addHash] = $row + array('spawn_times' => date('H:i:s', $row['normalized_timestamp']), 'spawn_timer_text' => $spawn_string, 'prev_spawn' => $row['normalized_timestamp'], 'spawn_timer_raw' => array());
+                $added_pkmn[$addHash] = $row + array(
+                                                    'spawn_times' => date('H:i:s', $row['normalized_timestamp']),
+                                                    'spawn_timer_text' => $spawn_string,
+                                                    'prev_spawn_time' => $row['normalized_timestamp'],
+                                                    'spawn_timer_raw' => array()
+                                                );
             } else {
                 $spawn_date_1 = new DateTime();
-                $spawn_date_1->setTimestamp($added_pkmn[$addHash]['prev_spawn']);
+                $spawn_date_1->setTimestamp($added_pkmn[$addHash]['prev_spawn_time']);
                 $spawn_date_2 = new DateTime();
                 $spawn_date_2->setTimestamp($row['normalized_timestamp']);
                 $iv = $spawn_date_2->diff($spawn_date_1);
@@ -168,24 +170,44 @@ class PoGOBS
                         $spawn_string .= ($iv->i>0?($iv->i==1?'minütlich':($iv->d==0 && $iv->h==0?'alle ':'').($iv->h>0?'und ':'').$iv->i.' Minuten'):'');
                         $now = new DateTime();
                         $spawn = new DateTime();
-                        // $spawn->setTimestamp(strtotime(date('d.m.Y '.(($now->format('H')+date('H',$row['normalized_timestamp']))%24).':'.date('i',$row['normalized_timestamp']).':00', time())));
+                        $spawn->setTimestamp(
+                            strtotime(
+                                date(
+                                    (($now->format('j') + $iv->d) % date('t',$row['normalized_timestamp'])).
+                                    '.m.Y '.
+                                    (($now->format('G') + $iv->h) % 24).
+                                    ':'.
+                                    date('i',$row['normalized_timestamp']).
+                                    ':00',
+                                    time()
+                                )
+                            )
+                        );
                         $iv = $now->diff($spawn);
 
-                        // $spawn_string .= ' (In '.$iv->d.' Tage(n) '.$iv->h.' Stunde(n) '.$iv->i.' Minute(n))';
+                        $spawn_string .= '<br><br><strong>Nächster Spawn:</strong><br>'.$iv->d.' Tage(n)<br>'.$iv->h.' Stunde(n)<br>'.$iv->i.' Minute(n)';
 
                         $added_pkmn[$addHash]['spawn_timer_text'] = $spawn_string;
-                        // $added_pkmn[$addHash]['spawn_timer'] = '<br>Spawn alle '.$iv->d.' Tage '.$iv->h.' Stunden '.$iv->i.' Minuten <br>';
                         $added_pkmn[$addHash]['spawn_timer_raw'] = $spawn_timer_raw;
-                        $added_pkmn[$addHash]['prev_spawn'] = $row['normalized_timestamp'];
+                        $added_pkmn[$addHash]['prev_spawn_time'] = $row['normalized_timestamp'];
                     }
                 }
 
             }
         };
+
         foreach ($added_pkmn as $addHash => $data) {
             $pkmn_result[] = $data;
         }
-        return json_encode($pkmn_result, true);
+
+        $this->_lastDBResult = $pkmn_result;
+
+        if ($returnType == 'JSON')
+        {
+            return json_encode($pkmn_result, true);
+        } else {
+            return $pkmn_result;
+        }
     }
 
     public function getPokemonIDbyName($pkmn_name)

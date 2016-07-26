@@ -38,7 +38,7 @@ function addMarkers(pkmns, name) {
         marker = new google.maps.Marker({
             position: position,
             map: map,
-            title: jsDate.toLocaleString() + "Lat: " + pkmns[i].lat + " Lon: " + pkmns[i].lon,
+            title: name,
             icon: iconBase + pkmns[i].pokemon_id + '.png'
         });
 

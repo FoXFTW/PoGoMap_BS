@@ -27,7 +27,7 @@ if (isset($match) && $match['name'] == 'pkmnroute')
             <div class="menue-icon menue-icon-close glyphicon glyphicon-remove"></div>
             <div class="menue">
                 <div class="select-container">
-                    <?php echo $PoGO->getJSONPKMN('select', $pkmnID ); ?>
+                    <?php echo $PoGO->createSelectFromJSON('select', $pkmnID ); ?>
                 </div>
             </div>
         </div>
@@ -41,7 +41,7 @@ if (isset($match) && $match['name'] == 'pkmnroute')
         if ($preload)
         {
             echo '<script>window.onload=function(){
-                var markers = '.$PoGO->getPokemon($pkmnID).';
+                var markers = '.$PoGO->getPokemonFromDB($pkmnID).';
                 jQuery(".loader").fadeIn();
                 addMarkers(markers, "'.$PoGO->getPokemonNamebyID($pkmnID).'");
 
